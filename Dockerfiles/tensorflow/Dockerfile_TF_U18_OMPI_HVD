@@ -1,0 +1,69 @@
+# This dockerfile works for TF 2.1.0 branch only. Bazel and branch info needs to be changed for other TF versions
+# Ubuntu 18.04 container
+FROM ubuntu:18.04
+ARG TF_BRANCH=bf16/base
+ARG BAZEL_VERSION=3.0.0
+
+#install required packages
+RUN apt-get update && apt-get install -y --allow-downgrades --allow-change-held-packages --no-install-recommends \
+        build-essential \
+        cmake \
+        git \
+        curl \
+        wget \
+        unzip \
+        numactl \
+        python3 \
+        python3-dev \
+        python3-pip \
+        python3-setuptools \
+        python3-distutils \
+        && rm -rf /var/lib/apt/lists/*
+
+# make python3 as default
+RUN ln -s /usr/bin/python3 /usr/bin/python
+
+# install libs for Tensorflow build
+RUN pip3 install pip --upgrade 
+RUN pip install -U --user pip six 'numpy<1.19.0' wheel setuptools mock 'future>=0.17.1'
+RUN pip install -U --user keras_applications --no-deps
+RUN pip install -U --user keras_preprocessing --no-deps
+
+WORKDIR /tmp
+
+# Install bazel 
+RUN wget https://github.com/bazelbuild/bazel/releases/download/$BAZEL_VERSION/bazel-$BAZEL_VERSION-installer-linux-x86_64.sh && \
+    chmod 777 bazel-$BAZEL_VERSION-installer-linux-x86_64.sh && \
+    bash ./bazel-$BAZEL_VERSION-installer-linux-x86_64.sh --user && \
+    rm -rf bazel-$BAZEL_VERSION-installer-linux-x86_64.sh
+
+ENV PATH=$HOME/bin:$PATH
+
+# Build and install tensorflow
+RUN git clone https://github.com/Intel-tensorflow/tensorflow.git && cd tensorflow && git checkout $TF_BRANCH && \
+    yes "" | python configure.py && \ 
+    $HOME/bin/bazel build --copt=-O3 --copt=-march=native --copt=-DENABLE_INTEL_MKL_BFLOAT16  --config=mkl \
+    --define build_with_mkl_dnn_v1_only=true -c opt //tensorflow/tools/pip_package:build_pip_package  -j 96 && \
+    bazel-bin/tensorflow/tools/pip_package/build_pip_package / && \
+    pip install /tensorflow-*.whl && \
+    $HOME/bin/bazel clean && rm -rf /tmp/* /root/.cache/bazel /tensorflow-*.whl
+
+WORKDIR /
+
+#install Horovod
+ARG HVD_VERSION=0.19.3
+RUN HOROVOD_WITH_TENSORFLOW=1 \
+    pip3 install --no-cache-dir horovod==$HVD_VERSION
+
+# Install OpenSSH for MPI to communicate between containers
+RUN apt update && apt-get install -y --allow-downgrades --allow-change-held-packages --no-install-recommends openssh-client openssh-server && \
+    rm -rf /var/lib/apt/lists/* && \
+    mkdir -p /var/run/sshd
+
+# Allow OpenSSH to talk to containers without asking for confirmation
+RUN cat /etc/ssh/ssh_config | grep -v StrictHostKeyChecking > /etc/ssh/ssh_config.new && \
+    echo "    StrictHostKeyChecking no" >> /etc/ssh/ssh_config.new && \
+    mv /etc/ssh/ssh_config.new /etc/ssh/ssh_config
+
+# Test Tensrflow and Horovod
+RUN python3 -c 'import tensorflow;import horovod.tensorflow as hvd; print(tensorflow.__version__ ," ", hvd.__name__, " installed")'
