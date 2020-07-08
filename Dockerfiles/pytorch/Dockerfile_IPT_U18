@@ -2,7 +2,7 @@
 
 # use Ubuntu 18 as base
 FROM ubuntu:18.04
-ENV PT_VERSION=master
+ENV PT_VERSION=v1.5.0-rc3
 
 # Install ubuntu packages
 RUN apt-get update && apt-get install -y --allow-downgrades --allow-change-held-packages --no-install-recommends \
@@ -33,10 +33,13 @@ ENV USE_CUDA=0
 ENV USE_CUDNN=0
 
 # clone and install pytorch
-RUN git clone --recursive https://github.com/pytorch/pytorch && \
+RUN git clone --recursive https://github.com/intel/intel-extension-for-pytorch && \
+    cd intel-extension-for-pytorch && git submodule sync && git submodule update --init --recursive && cd .. && \ 
+    git clone --recursive https://github.com/pytorch/pytorch && \
     cd pytorch && git checkout $PT_VERSION && git submodule sync && git submodule update --init --recursive && \
+    git apply ../intel-extension-for-pytorch/torch_patches/dpcpp-v1.5-rc3.patch && \
     python3 setup.py clean && python3 setup.py install && \
-    python3 setup.py clean && cd .. && rm -rf pytorch
+    python3 setup.py clean && cd .. && rm -rf pytorch intel-extension-for-pytorch
 
 # install Jemalloc
 WORKDIR /tmp
