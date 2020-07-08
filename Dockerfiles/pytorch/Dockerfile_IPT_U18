@@ -39,7 +39,11 @@ RUN git clone --recursive https://github.com/intel/intel-extension-for-pytorch &
     cd pytorch && git checkout $PT_VERSION && git submodule sync && git submodule update --init --recursive && \
     git apply ../intel-extension-for-pytorch/torch_patches/dpcpp-v1.5-rc3.patch && \
     python3 setup.py clean && python3 setup.py install && \
-    python3 setup.py clean && cd .. && rm -rf pytorch intel-extension-for-pytorch
+    cd ../intel-extension-for-pytorch && \
+    pip install lark-parser hypothesis && \
+    python3 setup.py install && cd .. && \
+    #python3 setup.py clean && python3 setup.py install && cd .. && \
+    rm -rf pytorch intel-extension-for-pytorch
 
 # install Jemalloc
 WORKDIR /tmp
