@@ -7,7 +7,7 @@ export BERT_BASE_DIR=/work_space/intel_nlp/language_modelling/bert/trained_model
 export CKPT_DIR=$BERT_BASE_DIR/ckpt_qa
 export CORES_PER_PROC=20
 export OMP_NUM_THREADS=18
-export THREADS_PER_CORE=2
+export THREADS_PER_CORE=1
 export NUM_WORKERS=2
 #rm -rf $CKPT_DIR/*
 mpirun -np  $NUM_WORKERS --map-by ppr:1:socket:pe=$CORES_PER_PROC --allow-run-as-root --mca plm_rsh_args "-p 12345" -mca btl_tcp_if_include $IFACE -mca btl ^openib -mca pml ob1 -H $IP_PORT  --oversubscribe --report-bindings -x KMP_AFFINITY=granularity=fine,verbose,compact,1,0 -x OMP_NUM_THREADS=$OMP_NUM_THREADS -x KMP_BLOCKTIME=1 numactl -l python3 -u $CODE_DIR/run_squad.py \
