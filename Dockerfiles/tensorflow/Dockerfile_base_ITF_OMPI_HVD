@@ -1,17 +1,24 @@
 # This dockerfile works for TF 2.1.0 branch only. Bazel and TF branch info needs to be changed for other TF versions
 # import base build
 FROM itf_u18:bf16_base
+
 # select Horovod relevant to base build tf version
 ARG HVD_VERSION=0.19.3
+
+# Install OpenSSH for MPI to communicate between containers
+RUN apt update && apt-get install -y --allow-downgrades --allow-change-held-packages --no-install-recommends \
+    openssh-client openssh-server && \
+    openmpi-bin \
+    libopenmpi-dev \
+    librdmacm1 \
+    libibverbs1 \
+    ibverbs-providers && \
+    rm -rf /var/lib/apt/lists/* && \
+    mkdir -p /var/run/sshd
 
 #install Horovod
 RUN HOROVOD_WITH_TENSORFLOW=1 \
     pip3 install --no-cache-dir horovod==$HVD_VERSION
-
-# Install OpenSSH for MPI to communicate between containers
-RUN apt update && apt-get install -y --allow-downgrades --allow-change-held-packages --no-install-recommends openssh-client openssh-server && \
-    rm -rf /var/lib/apt/lists/* && \
-    mkdir -p /var/run/sshd
 
 # Allow OpenSSH to talk to containers without asking for confirmation
 RUN cat /etc/ssh/ssh_config | grep -v StrictHostKeyChecking > /etc/ssh/ssh_config.new && \
