@@ -1,8 +1,8 @@
-# This Dockerfile is to build Pytorch master with Intel optimization. Change PT_VERSION for any other branch.
+# This Dockerfile is to build Pytorch master with oneCLL and Torch CCL. Change BASE_IMG for any other base image
 
 # Select the base 
-ARG BASE=ipte_u18:1.5
-FROM $BASE
+ARG BASE_IMG=pt_u18:master
+FROM $BASE_IMG
 
 # clone and install oneCCL
 RUN git clone https://github.com/oneapi-src/oneCCL.git && \
@@ -12,4 +12,8 @@ RUN git clone https://github.com/oneapi-src/oneCCL.git && \
 # clone and install torch CCL
 RUN git clone https://github.com/intel/torch-ccl.git && \
     . /usr/local/env/setvars.sh && cd torch-ccl && \
-    python setup.py install && cd ../torch-ccl && rm -rf torch-ccl
+    sed -i "s/record_function.h/record_function_ops.h/g" ./src/ProcessGroupCCL.cpp && \
+    python setup.py install && cd .. && rm -rf torch-ccl
+
+# activate oneCCL
+RUN echo "source /usr/local/env/setvars.sh" > ~/.bashrc

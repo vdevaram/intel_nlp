@@ -1,6 +1,8 @@
 # This dockerfile works for TF 2.1.0 branch only. Bazel and TF branch info needs to be changed for other TF versions
+
 # import base build
-FROM itf_u18:bf16_base
+ARG BASE_IMG=itf_u18:bf16_base
+FROM $BASE_IMG
 
 # select Horovod relevant to base build tf version
 ARG HVD_VERSION=0.19.3

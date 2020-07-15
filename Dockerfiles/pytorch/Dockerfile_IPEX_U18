@@ -32,7 +32,7 @@ ENV CMAKE_PREFIX_PATH=${CONDA_PREFIX:-"$(dirname $(which conda))/../"}
 ENV USE_CUDA=0
 ENV USE_CUDNN=0
 
-# clone and install pytorch
+# clone and install pytorch and intel extensions
 RUN git clone --recursive https://github.com/intel/intel-extension-for-pytorch && \
     cd intel-extension-for-pytorch && git submodule sync && git submodule update --init --recursive && cd .. && \ 
     git clone --recursive https://github.com/pytorch/pytorch && \
@@ -41,9 +41,9 @@ RUN git clone --recursive https://github.com/intel/intel-extension-for-pytorch &
     python3 setup.py clean && python3 setup.py install && \
     cd ../intel-extension-for-pytorch && \
     pip install lark-parser hypothesis && \
-    python3 setup.py install && cd .. && \
-    #python3 setup.py clean && python3 setup.py install && cd .. && \
-    rm -rf pytorch intel-extension-for-pytorch
+    python3 setup.py clean && python3 setup.py install && cd .. && \
+    rm -rf pytorch 
+    #rm -rf pytorch intel-extension-for-pytorch #TODO
 
 # install Jemalloc
 WORKDIR /tmp
